@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/BimaAdi/dbmarkdown/db"
+	"github.com/urfave/cli/v3"
 )
 
 type config map[string]string
@@ -31,74 +33,60 @@ func main() {
 }
 
 func runCLI(args []string) error {
-	if len(args) == 0 {
-		return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output path]")
-	}
+	return newCLI().Run(context.Background(), append([]string{"dbmarkdown"}, args...))
+}
 
-	confPath := "db.json"
-	outputPath := ""
-	for len(args) > 0 && strings.HasPrefix(args[0], "--") {
-		switch args[0] {
-		case "--conf":
-			if len(args) < 2 {
-				return errors.New("--conf requires a path")
-			}
-			confPath, args = args[1], args[2:]
-		case "--output":
-			if len(args) < 2 {
-				return errors.New("--output requires a path")
-			}
-			outputPath, args = args[1], args[2:]
-		default:
-			return fmt.Errorf("unknown option %q", args[0])
-		}
-	}
-	if len(args) == 0 || args[0] != "run" {
-		return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output path]")
-	}
+func newCLI() *cli.Command {
+	return &cli.Command{
+		Name:  "dbmarkdown",
+		Usage: "execute a named SQL query from a Markdown file",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:  "conf",
+				Usage: "path to the database configuration file",
+				Value: "db.json",
+			},
+			&cli.StringFlag{
+				Name:  "output",
+				Usage: "path to write the resulting Markdown",
+			},
+		},
+		Commands: []*cli.Command{
+			{
+				Name:      "run",
+				Usage:     "execute a named query",
+				ArgsUsage: "<name> <markdown path>",
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					if cmd.NArg() != 2 {
+						return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output path]")
+					}
 
-	commandArgs := args[1:]
-	// Accept options after the command as well, which is convenient with go run.
-	positional := make([]string, 0, 2)
-	for i := 0; i < len(commandArgs); i++ {
-		switch commandArgs[i] {
-		case "--conf", "--output":
-			if i+1 >= len(commandArgs) {
-				return fmt.Errorf("%s requires a path", commandArgs[i])
-			}
-			if commandArgs[i] == "--conf" {
-				confPath = commandArgs[i+1]
-			} else {
-				outputPath = commandArgs[i+1]
-			}
-			i++
-		default:
-			positional = append(positional, commandArgs[i])
-		}
-	}
-	if len(positional) != 2 {
-		return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output path]")
-	}
-	if outputPath == "" {
-		outputPath = positional[1]
-	}
+					name, markdownPath := cmd.Args().Get(0), cmd.Args().Get(1)
+					outputPath := cmd.String("output")
+					if outputPath == "" {
+						outputPath = markdownPath
+					}
 
-	cfg, err := loadConfig(confPath)
-	if err != nil {
-		return err
+					cfg, err := loadConfig(cmd.String("conf"))
+					if err != nil {
+						return err
+					}
+					input, err := os.ReadFile(markdownPath)
+					if err != nil {
+						return fmt.Errorf("read markdown: %w", err)
+					}
+					result, err := executeNamedQuery(string(input), name, cfg)
+					if err != nil {
+						return err
+					}
+					if err := os.WriteFile(outputPath, []byte(result), 0644); err != nil {
+						return fmt.Errorf("write markdown: %w", err)
+					}
+					return nil
+				},
+			},
+		},
 	}
-	input, err := os.ReadFile(positional[1])
-	if err != nil {
-		return fmt.Errorf("read markdown: %w", err)
-	}
-	result, err := executeNamedQuery(string(input), positional[0], cfg)
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(outputPath, []byte(result), 0644); err != nil {
-		return fmt.Errorf("write markdown: %w", err)
-	}
-	return nil
 }
 
 func loadConfig(path string) (config, error) {

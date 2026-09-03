@@ -3,13 +3,17 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/BimaAdi/dbmarkdown/format"
 	_ "github.com/lib/pq"
 )
 
-// Query executes a PostgreSQL query and formats its result as Markdown.
-func Query(dsn, query string) (string, error) {
+func isPostgresDsn(dsn string) bool {
+	return strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://")
+}
+
+func queryPostgres(dsn, query string) (string, error) {
 	database, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return "", fmt.Errorf("open database: %w", err)
@@ -27,6 +31,10 @@ func Query(dsn, query string) (string, error) {
 		return "", fmt.Errorf("read query result: %w", err)
 	}
 
+	return markdownTable(rows, columns)
+}
+
+func markdownTable(rows *sql.Rows, columns []string) (string, error) {
 	data := make([][]string, 0)
 	for rows.Next() {
 		values := make([]any, len(columns))
