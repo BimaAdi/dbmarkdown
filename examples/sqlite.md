@@ -37,6 +37,7 @@ result:
 | 2   | is_done | INTEGER | 0       |            | 0  |
 
 
+db=db-sqlite|name=getalltodo
 ```sql
 SELECT * from todo; 
 ```

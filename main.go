@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -46,23 +47,38 @@ func newCLI() *cli.Command {
 				Usage: "path to the database configuration file",
 				Value: "db.json",
 			},
-			&cli.StringFlag{
-				Name:  "output",
-				Usage: "path to write the resulting Markdown",
-			},
 		},
 		Commands: []*cli.Command{
 			{
 				Name:      "run",
 				Usage:     "execute a named query",
 				ArgsUsage: "<name> <markdown path>",
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "output-file",
+						Aliases: []string{"of"},
+						Usage:   "path to write the resulting Markdown, default: <markdown path>",
+					},
+					&cli.StringFlag{
+						Name:    "output-to",
+						Aliases: []string{"ot"},
+						Usage:   "write the resulting output to (options: file/shell)",
+						Value:   "file",
+						Validator: func(value string) error {
+							if value != "file" && value != "shell" {
+								return fmt.Errorf("invalid output destination %q: must be file or shell", value)
+							}
+							return nil
+						},
+					},
+				},
 				Action: func(_ context.Context, cmd *cli.Command) error {
 					if cmd.NArg() != 2 {
-						return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output path]")
+						return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output-file path] [--output-to file|shell]")
 					}
 
 					name, markdownPath := cmd.Args().Get(0), cmd.Args().Get(1)
-					outputPath := cmd.String("output")
+					outputPath := cmd.String("output-file")
 					if outputPath == "" {
 						outputPath = markdownPath
 					}
@@ -71,18 +87,27 @@ func newCLI() *cli.Command {
 					if err != nil {
 						return err
 					}
+
 					input, err := os.ReadFile(markdownPath)
 					if err != nil {
 						return fmt.Errorf("read markdown: %w", err)
 					}
-					result, err := executeNamedQuery(string(input), name, cfg)
+
+					block, err := findQuery(string(input), name, cfg)
 					if err != nil {
 						return err
 					}
-					if err := os.WriteFile(outputPath, []byte(result), 0644); err != nil {
-						return fmt.Errorf("write markdown: %w", err)
+
+					queryCfg := config{block.connection: cfg[block.connection]}
+					result, err := runQuery(block.query, queryCfg)
+					if err != nil {
+						return err
 					}
-					return nil
+
+					if cmd.String("output-to") == "shell" {
+						return writeToShell(cmd.Writer, result)
+					}
+					return writeToFile(outputPath, string(input), block, result)
 				},
 			},
 		},
@@ -101,23 +126,40 @@ func loadConfig(path string) (config, error) {
 	return cfg, nil
 }
 
-func executeNamedQuery(markdown, name string, cfg config) (string, error) {
-	block, err := findQuery(markdown, name)
-	if err != nil {
-		return "", err
+func runQuery(query string, cfg config) (string, error) {
+	if len(cfg) != 1 {
+		return "", errors.New("runQuery requires exactly one configured connection")
 	}
-	dsn, ok := cfg[block.connection]
-	if !ok || strings.TrimSpace(dsn) == "" {
-		return "", fmt.Errorf("connection %q is not configured", block.connection)
+	for connection, dsn := range cfg {
+		if strings.TrimSpace(dsn) == "" {
+			return "", fmt.Errorf("connection %q is not configured", connection)
+		}
+		result, err := db.Query(dsn, query)
+		if err != nil {
+			return "", fmt.Errorf("query: %w", err)
+		}
+		return result, nil
 	}
-	table, err := db.Query(dsn, block.query)
-	if err != nil {
-		return "", fmt.Errorf("query %q: %w", name, err)
-	}
-	return markdown[:block.end] + "\nresult:\n" + table + markdown[block.end:], nil
+	return "", errors.New("runQuery requires exactly one configured connection")
 }
 
-func findQuery(markdown, name string) (queryBlock, error) {
+func writeToFile(path, markdown string, block queryBlock, result string) error {
+	updated := markdown[:block.end] + "\nresult:\n" + result + markdown[block.end:]
+	if err := os.WriteFile(path, []byte(updated), 0644); err != nil {
+		return fmt.Errorf("write markdown: %w", err)
+	}
+	return nil
+}
+
+func writeToShell(writer io.Writer, result string) error {
+	_, err := fmt.Fprint(writer, result + "\n")
+	return err
+}
+
+func findQuery(markdown, name string, configs ...config) (queryBlock, error) {
+	if len(configs) > 1 {
+		return queryBlock{}, errors.New("findQuery accepts at most one config")
+	}
 	lines := strings.SplitAfter(markdown, "\n")
 	offsets := make([]int, len(lines))
 	for i := 1; i < len(lines); i++ {
@@ -132,8 +174,17 @@ func findQuery(markdown, name string) (queryBlock, error) {
 		if match[2] != name {
 			continue
 		}
+		if len(configs) == 1 {
+			dsn, ok := configs[0][match[1]]
+			if !ok || strings.TrimSpace(dsn) == "" {
+				return queryBlock{}, fmt.Errorf("connection %q is not configured", match[1])
+			}
+		}
 		if i+1 >= len(lines) || strings.TrimSpace(lines[i+1]) != "```sql" {
 			return queryBlock{}, fmt.Errorf("query %q must be followed by a ```sql code fence", name)
+		}
+		if i+2 >= len(lines) {
+			return queryBlock{}, fmt.Errorf("query %q has an unclosed code fence", name)
 		}
 		queryStart := offsets[i+2]
 		for j := i + 2; j < len(lines); j++ {

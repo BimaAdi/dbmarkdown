@@ -11,7 +11,7 @@ func Query(dsn, query string) (string, error) {
 		return querySQLite(strings.TrimPrefix(dsn, "sqlite://"), query)
 	}
 	if isPostgresDsn(dsn) {
-	  return queryPostgres(dsn, query)
+		return queryPostgres(dsn, query)
 	}
 	return "", fmt.Errorf("unsupported database DSN: %q", dsn)
 }
