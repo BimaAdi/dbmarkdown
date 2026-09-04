@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"os"
 	"testing"
 
 	"github.com/urfave/cli/v3"
@@ -46,26 +49,41 @@ func TestRunOutputToFlag(t *testing.T) {
 	}
 }
 
-func TestFindQuery(t *testing.T) {
-	markdown := "intro\n\ndb=dev|name=unfinished\n```sql\nSELECT id FROM todos WHERE done = false;\n```\n"
-
-	block, err := findQuery(markdown, "unfinished")
-	if err != nil {
+func TestExecRunsConfiguredQueryAndWritesToShell(t *testing.T) {
+	configPath := t.TempDir() + "/db.json"
+	if err := os.WriteFile(configPath, []byte(`{"blog":"sqlite://:memory:"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if block.connection != "dev" {
-		t.Fatalf("connection = %q, want dev", block.connection)
+
+	var output bytes.Buffer
+	app := newCLI()
+	app.Writer = &output
+	app.ErrWriter = &output
+	if err := app.Run(context.Background(), []string{
+		"dbmarkdown", "--conf", configPath, "exec", "blog", "SELECT 1 AS id",
+	}); err != nil {
+		t.Fatal(err)
 	}
-	if block.query != "SELECT id FROM todos WHERE done = false;" {
-		t.Fatalf("query = %q", block.query)
-	}
-	if markdown[block.end:] != "" {
-		t.Fatalf("end offset did not preserve trailing content: %q", markdown[block.end:])
+
+	want := "| id |\n|----|\n| 1  |\n"
+	if output.String() != want {
+		t.Fatalf("exec output = %q, want %q", output.String(), want)
 	}
 }
 
-func TestFindQueryErrorsWhenMissing(t *testing.T) {
-	if _, err := findQuery("db=dev|name=other\n```sql\nSELECT 1\n```\n", "missing"); err == nil {
-		t.Fatal("findQuery returned nil error for a missing query")
+func TestExecRejectsUnknownConfig(t *testing.T) {
+	configPath := t.TempDir() + "/db.json"
+	if err := os.WriteFile(configPath, []byte(`{"blog":"sqlite://:memory:"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	err := newCLI().Run(context.Background(), []string{
+		"dbmarkdown", "--conf", configPath, "exec", "missing", "SELECT 1",
+	})
+	if err == nil {
+		t.Fatal("exec accepted an unknown config")
+	}
+	if err.Error() != `connection "missing" is not configured` {
+		t.Fatalf("exec error = %q, want unknown config error", err)
 	}
 }
