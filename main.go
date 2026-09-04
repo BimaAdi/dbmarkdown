@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"os"
@@ -10,6 +11,9 @@ import (
 	"github.com/BimaAdi/dbmarkdown/core"
 	"github.com/urfave/cli/v3"
 )
+
+//go:embed docs/How-to-use.md
+var tutorial []byte
 
 func main() {
 	if err := runCLI(os.Args[1:]); err != nil {
@@ -120,6 +124,14 @@ func newCLI() *cli.Command {
 						return err
 					}
 					return core.WriteToShell(cmd.Writer, result)
+				},
+			},
+			{
+				Name:  "tutorial",
+				Usage: "show the usage tutorial",
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					_, err := cmd.Writer.Write(tutorial)
+					return err
 				},
 			},
 		},

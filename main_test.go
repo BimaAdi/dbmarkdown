@@ -9,6 +9,20 @@ import (
 	"github.com/urfave/cli/v3"
 )
 
+func TestTutorialPrintsDocumentation(t *testing.T) {
+	var output bytes.Buffer
+	app := newCLI()
+	app.Writer = &output
+	app.ErrWriter = &output
+
+	if err := app.Run(context.Background(), []string{"dbmarkdown", "tutorial"}); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(output.Bytes(), tutorial) {
+		t.Fatalf("tutorial output does not match embedded documentation")
+	}
+}
+
 func TestRunOutputFileFlag(t *testing.T) {
 	runCommand := newCLI().Commands[0]
 	flag, ok := runCommand.Flags[0].(*cli.StringFlag)
