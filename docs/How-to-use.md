@@ -25,7 +25,7 @@ SELECT id, name, is_done FROM todo;
 Run the named query and write the result back into the same Markdown file:
 
 ```sh
-dbmarkdown run getalltodo todos.md
+dbmd run getalltodo todos.md
 ```
 
 it will add result on the markdown
@@ -47,13 +47,13 @@ result:
 To keep the source file unchanged and write the result to another file, use `--output-file`:
 
 ```sh
-dbmarkdown run getalltodo todos.md --output-file todos-result.md
+dbmd run getalltodo todos.md --output-file todos-result.md
 ```
 
 Use `--output-to shell` to print the result instead of writing Markdown:
 
 ```sh
-dbmarkdown run getalltodo examples/todos.md --output-to shell
+dbmd run getalltodo examples/todos.md --output-to shell
 | id | name       | is_done |
 |----|------------|---------|
 | 1  | first todo | 1       |
@@ -62,14 +62,14 @@ dbmarkdown run getalltodo examples/todos.md --output-to shell
 Use a different configuration file with the global `--conf` option:
 
 ```sh
-dbmarkdown --conf config/db.json run getalltodo examples/todos.md
+dbmd --conf config/db.json run getalltodo examples/todos.md
 ```
 
 ## Execute Query Directly
 Execute a SQL query directly (no markdown needed). The first argument is the configuration name, followed by the query. Results are printed to the shell:
 
 ```sh
-dbmarkdown exec db-sqlite "SELECT id, name, is_done FROM todo;"
+dbmd exec db-sqlite "SELECT id, name, is_done FROM todo;"
 | id | name       | is_done |
 |----|------------|---------|
 | 1  | first todo | 1       |
@@ -78,11 +78,11 @@ dbmarkdown exec db-sqlite "SELECT id, name, is_done FROM todo;"
 For queries containing shell-sensitive characters or multiple lines, use single quotes or a shell variable:
 
 ```sh
-dbmarkdown exec db-postgres 'SELECT id, name FROM todo WHERE is_done = true;'
+dbmd exec db-postgres 'SELECT id, name FROM todo WHERE is_done = true;'
 ```
 
 The `exec` command also uses `db.json` by default and accepts `--conf`:
 
 ```sh
-dbmarkdown --conf config/db.json exec db-sqlite "SELECT COUNT(*) FROM todo;"
+dbmd --conf config/db.json exec db-sqlite "SELECT COUNT(*) FROM todo;"
 ```

@@ -28,7 +28,7 @@ func runCLI(args []string) error {
 
 func newCLI() *cli.Command {
 	return &cli.Command{
-		Name:  "dbmarkdown",
+		Name:  "dbmd",
 		Usage: "execute a named SQL query from a Markdown file",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
@@ -63,7 +63,7 @@ func newCLI() *cli.Command {
 				},
 				Action: func(_ context.Context, cmd *cli.Command) error {
 					if cmd.NArg() != 2 {
-						return errors.New("usage: dbmarkdown [--conf db.json] run <name> <markdown path> [--output-file path] [--output-to file|shell]")
+						return errors.New("usage: dbmd [--conf db.json] run <name> <markdown path> [--output-file path] [--output-to file|shell]")
 					}
 
 					name, markdownPath := cmd.Args().Get(0), cmd.Args().Get(1)
@@ -105,7 +105,7 @@ func newCLI() *cli.Command {
 				ArgsUsage: "<config name> <query>",
 				Action: func(_ context.Context, cmd *cli.Command) error {
 					if cmd.NArg() != 2 {
-						return errors.New("usage: dbmarkdown [--conf db.json] exec <config name> <query>")
+						return errors.New("usage: dbmd [--conf db.json] exec <config name> <query>")
 					}
 
 					configName, query := cmd.Args().Get(0), cmd.Args().Get(1)

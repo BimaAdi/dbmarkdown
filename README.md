@@ -14,10 +14,10 @@ see [How to Use](./docs/How-to-use.md)
 ## Dev Instalation
 1. clone the project
 1. `go build`
-1. run exe `dbmarkdown --help`
+1. run exe `dbmd --help`
 
 ## Static Analysis
 - `go fmt ./...`
 - `go vet ./...`
 - `go test ./...`
-- `go build`
+- `go build -o dbmd`
