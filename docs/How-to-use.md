@@ -39,9 +39,17 @@ SELECT id, name, is_done FROM todo;
 \```
 
 result:
+---
 | id | name       | is_done |
 |----|------------|---------|
 | 1  | first todo | 1       |
+---
+```
+
+Running the same command again replaces the result between the `---` delimiters. To keep the existing result and add another one, use `--append`:
+
+```sh
+dbmd run getalltodo todos.md --append
 ```
 
 To keep the source file unchanged and write the result to another file, use `--output-file`:

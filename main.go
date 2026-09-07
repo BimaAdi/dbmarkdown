@@ -60,10 +60,14 @@ func newCLI() *cli.Command {
 							return nil
 						},
 					},
+					&cli.BoolFlag{
+						Name:  "append",
+						Usage: "append a new result instead of replacing the existing result",
+					},
 				},
 				Action: func(_ context.Context, cmd *cli.Command) error {
 					if cmd.NArg() != 2 {
-						return errors.New("usage: dbmd [--conf db.json] run <name> <markdown path> [--output-file path] [--output-to file|shell]")
+						return errors.New("usage: dbmd [--conf db.json] run <name> <markdown path> [--output-file path] [--output-to file|shell] [--append]")
 					}
 
 					name, markdownPath := cmd.Args().Get(0), cmd.Args().Get(1)
@@ -96,7 +100,7 @@ func newCLI() *cli.Command {
 					if cmd.String("output-to") == "shell" {
 						return core.WriteToShell(cmd.Writer, result)
 					}
-					return core.WriteToFile(outputPath, string(input), block, result)
+					return core.WriteToFile(outputPath, string(input), block, result, cmd.Bool("append"))
 				},
 			},
 			{

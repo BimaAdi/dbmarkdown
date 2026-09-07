@@ -10,8 +10,10 @@ CREATE TABLE todo (
 ```
 
 result:
+---
 |  |
 ||
+---
 
 db=db-postgres|name=inserttodo
 ```sql
@@ -21,8 +23,10 @@ INSERT INTO todo (name, is_done) VALUES
 ```
 
 result:
+---
 |  |
 ||
+---
 
 db=db-postgres|name=todoschema
 ```sql
@@ -41,11 +45,13 @@ ORDER BY
 ```
 
 result:
+---
 | column_name | data_type         | max_length | is_nullable |
 |-------------|-------------------|------------|-------------|
 | id          | integer           |            | NO          |
 | name        | character varying |            | YES         |
 | is_done     | boolean           |            | YES         |
+---
 
 db=db-postgres|name=getalltodo 
 ```sql
@@ -53,8 +59,10 @@ SELECT * from todo;
 ```
 
 result:
+---
 | id | name        | is_done |
 |----|-------------|---------|
 | 1  | first todo  | true    |
 | 2  | second todo | false   |
+---
 

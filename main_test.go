@@ -63,6 +63,17 @@ func TestRunOutputToFlag(t *testing.T) {
 	}
 }
 
+func TestRunAppendFlag(t *testing.T) {
+	runCommand := newCLI().Commands[0]
+	flag, ok := runCommand.Flags[2].(*cli.BoolFlag)
+	if !ok {
+		t.Fatalf("run flag type = %T, want *cli.BoolFlag", runCommand.Flags[2])
+	}
+	if flag.Name != "append" {
+		t.Fatalf("flag name = %q, want append", flag.Name)
+	}
+}
+
 func TestExecRunsConfiguredQueryAndWritesToShell(t *testing.T) {
 	configPath := t.TempDir() + "/db.json"
 	if err := os.WriteFile(configPath, []byte(`{"blog":"sqlite://:memory:"}`), 0644); err != nil {
