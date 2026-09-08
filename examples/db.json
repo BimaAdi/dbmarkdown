@@ -1,4 +1,5 @@
 {
   "db-postgres": "postgresql://[username]:[password]@[host]:[port]/[database_name]?sslmode=[mode]",
+  "db-mysql": "mysql://[username]:[password]@[host]:[port]/[database_name]",
   "db-sqlite": "sqlite://[db-path]"
 }

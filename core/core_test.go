@@ -43,7 +43,7 @@ func TestWriteToFileReplacesDelimitedResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "db=dev|name=items\n```sql\nSELECT 1\n```\nresult:\n---\n| new |\n|-----|\n---\n\nnext\n"
+	want := "db=dev|name=items\n```sql\nSELECT 1\n```\nresult:\n---\n| new |\n|-----|\n---\n\n\nnext\n"
 	if string(got) != want {
 		t.Fatalf("updated markdown = %q, want %q", got, want)
 	}
@@ -63,7 +63,7 @@ func TestWriteToFileAppendsDelimitedResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "db=dev|name=items\n```sql\nSELECT 1\n```\n\nresult:\n---\n| new |\n---\nresult:\n---\n| old |\n|-----|\n---\n"
+	want := "db=dev|name=items\n```sql\nSELECT 1\n```\n\nresult:\n---\n| new |\n---\n\nresult:\n---\n| old |\n|-----|\n---\n"
 	if string(got) != want {
 		t.Fatalf("updated markdown = %q, want %q", got, want)
 	}
@@ -83,7 +83,7 @@ func TestWriteToFileReplacesLegacyResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "db=dev|name=items\n```sql\nSELECT 1\n```\nresult:\n---\n| new |\n---\n\ndb=dev|name=other\n"
+	want := "db=dev|name=items\n```sql\nSELECT 1\n```\nresult:\n---\n| new |\n---\n\n\ndb=dev|name=other\n"
 	if string(got) != want {
 		t.Fatalf("updated markdown = %q, want %q", got, want)
 	}

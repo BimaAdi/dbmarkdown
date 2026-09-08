@@ -67,7 +67,7 @@ func RunQuery(query string, cfg Config) (string, error) {
 // appendMode optionally enables inserting a new result instead of replacing
 // the existing one.
 func WriteToFile(path, markdown string, block QueryBlock, result string, appendMode ...bool) error {
-	resultBlock := "result:\n---\n" + strings.TrimSuffix(result, "\n") + "\n---"
+	resultBlock := "result:\n---\n" + strings.TrimSuffix(result, "\n") + "\n---\n"
 	updated := markdown
 	if len(appendMode) > 0 && appendMode[0] {
 		updated = markdown[:block.end] + "\n" + resultBlock + "\n" + markdown[block.end:]

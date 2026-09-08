@@ -31,10 +31,10 @@ func queryPostgres(dsn, query string) (string, error) {
 		return "", fmt.Errorf("read query result: %w", err)
 	}
 
-	return markdownTable(rows, columns)
+	return markdownTablePostgres(rows, columns)
 }
 
-func markdownTable(rows *sql.Rows, columns []string) (string, error) {
+func markdownTablePostgres(rows *sql.Rows, columns []string) (string, error) {
 	data := make([][]string, 0)
 	for rows.Next() {
 		values := make([]any, len(columns))
@@ -56,16 +56,4 @@ func markdownTable(rows *sql.Rows, columns []string) (string, error) {
 		return "", fmt.Errorf("read query result: %w", err)
 	}
 	return format.MarkdownTable(columns, data), nil
-}
-
-func valueToString(value any) string {
-	if value == nil {
-		return ""
-	}
-	switch v := value.(type) {
-	case []byte:
-		return string(v)
-	default:
-		return fmt.Sprint(v)
-	}
 }

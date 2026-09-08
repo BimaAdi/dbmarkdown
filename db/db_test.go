@@ -25,7 +25,7 @@ func TestIsSQLiteDSN(t *testing.T) {
 }
 
 func TestQueryRejectsUnsupportedDSN(t *testing.T) {
-	_, err := Query("mysql://localhost/database", "SELECT 1")
+	_, err := Query("oracle://localhost/database", "SELECT 1")
 	if err == nil {
 		t.Fatal("Query returned nil error for an unsupported DSN")
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/BimaAdi/dbmarkdown/format"
 	_ "modernc.org/sqlite"
 )
 
@@ -34,5 +35,29 @@ func querySQLite(path, query string) (string, error) {
 		return "", fmt.Errorf("read query result: %w", err)
 	}
 
-	return markdownTable(rows, columns)
+	return markdownTableSQLite(rows, columns)
+}
+
+func markdownTableSQLite(rows *sql.Rows, columns []string) (string, error) {
+	data := make([][]string, 0)
+	for rows.Next() {
+		values := make([]any, len(columns))
+		pointers := make([]any, len(columns))
+		for i := range values {
+			pointers[i] = &values[i]
+		}
+		if err := rows.Scan(pointers...); err != nil {
+			return "", fmt.Errorf("read query result: %w", err)
+		}
+
+		cells := make([]string, len(values))
+		for i, value := range values {
+			cells[i] = valueToString(value)
+		}
+		data = append(data, cells)
+	}
+	if err := rows.Err(); err != nil {
+		return "", fmt.Errorf("read query result: %w", err)
+	}
+	return format.MarkdownTable(columns, data), nil
 }
