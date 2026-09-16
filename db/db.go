@@ -7,6 +7,9 @@ import (
 
 // Query executes a database query and formats its result as Markdown.
 func Query(dsn, query string) (string, error) {
+	if IsRedisDSN(dsn) {
+		return queryRedis(dsn, query)
+	}
 	if isSQLiteDSN(dsn) {
 		return querySQLite(strings.TrimPrefix(dsn, "sqlite://"), query)
 	}

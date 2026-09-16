@@ -166,8 +166,15 @@ func FindQuery(markdown, name string, configs ...Config) (QueryBlock, error) {
 				return QueryBlock{}, fmt.Errorf("connection %q is not configured", match[1])
 			}
 		}
-		if i+1 >= len(lines) || strings.TrimSpace(lines[i+1]) != "```sql" {
-			return QueryBlock{}, fmt.Errorf("query %q must be followed by a ```sql code fence", name)
+
+		fence := "sql"
+		if len(configs) == 1 && db.IsRedisDSN(configs[0][match[1]]) {
+			fence = "redis"
+		} else if len(configs) == 0 && i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "```redis" {
+			fence = "redis"
+		}
+		if i+1 >= len(lines) || strings.TrimSpace(lines[i+1]) != "```"+fence {
+			return QueryBlock{}, fmt.Errorf("query %q must be followed by a ```%s code fence", name, fence)
 		}
 		if i+2 >= len(lines) {
 			return QueryBlock{}, fmt.Errorf("query %q has an unclosed code fence", name)

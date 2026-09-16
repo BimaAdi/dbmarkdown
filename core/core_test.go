@@ -29,6 +29,24 @@ func TestFindQueryErrorsWhenMissing(t *testing.T) {
 	}
 }
 
+func TestFindQueryAcceptsRedisFence(t *testing.T) {
+	markdown := "db=cache|name=get\n```redis\nGET hello\n```\n"
+	block, err := FindQuery(markdown, "get", Config{"cache": "redis://localhost:6379/0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if block.query != "GET hello" {
+		t.Fatalf("query = %q, want %q", block.query, "GET hello")
+	}
+}
+
+func TestFindQueryRejectsRedisFenceForSQLConnection(t *testing.T) {
+	markdown := "db=dev|name=get\n```redis\nGET hello\n```\n"
+	if _, err := FindQuery(markdown, "get", Config{"dev": "sqlite://:memory:"}); err == nil {
+		t.Fatal("FindQuery accepted a Redis fence for a SQL connection")
+	}
+}
+
 func TestWriteToFileReplacesDelimitedResult(t *testing.T) {
 	path := t.TempDir() + "/result.md"
 	markdown := "db=dev|name=items\n```sql\nSELECT 1\n```\nresult:\n---\n| old |\n|-----|\n---\n\nnext\n"
