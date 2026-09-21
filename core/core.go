@@ -142,6 +142,24 @@ func WriteToShell(writer io.Writer, result string) error {
 	return err
 }
 
+// FindDuplicateName returns true when markdown contains more than one query
+// block with the given name.
+func FindDuplicateName(markdown, name string) bool {
+	seen := false
+	for _, line := range strings.SplitAfter(markdown, "\n") {
+		trimmed := strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
+		match := markerPattern.FindStringSubmatch(trimmed)
+		if match == nil || match[2] != name {
+			continue
+		}
+		if seen {
+			return true
+		}
+		seen = true
+	}
+	return false
+}
+
 func FindQuery(markdown, name string, configs ...Config) (QueryBlock, error) {
 	if len(configs) > 1 {
 		return QueryBlock{}, errors.New("findQuery accepts at most one config")

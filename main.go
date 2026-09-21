@@ -86,6 +86,10 @@ func newCLI() *cli.Command {
 						return fmt.Errorf("read markdown: %w", err)
 					}
 
+					if core.FindDuplicateName(string(input), name) {
+						return fmt.Errorf("duplicate name %q", name)
+					}
+
 					block, err := core.FindQuery(string(input), name, cfg)
 					if err != nil {
 						return err

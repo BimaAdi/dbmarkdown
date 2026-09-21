@@ -23,6 +23,16 @@ func TestFindQuery(t *testing.T) {
 	}
 }
 
+func TestFindDuplicateName(t *testing.T) {
+	markdown := "db=dev|name=items\n```sql\nSELECT 1\n```\n"
+	if FindDuplicateName(markdown, "items") {
+		t.Fatal("FindDuplicateName found a duplicate for a unique name")
+	}
+	if !FindDuplicateName("db=dev|name=items\n```sql\nSELECT 1\n```\ndb=prod|name=items\n```sql\nSELECT 2\n```\n", "items") {
+		t.Fatal("FindDuplicateName missed a duplicate name")
+	}
+}
+
 func TestFindQueryErrorsWhenMissing(t *testing.T) {
 	if _, err := FindQuery("db=dev|name=other\n```sql\nSELECT 1\n```\n", "missing"); err == nil {
 		t.Fatal("findQuery returned nil error for a missing query")
