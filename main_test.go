@@ -74,6 +74,58 @@ func TestRunAppendFlag(t *testing.T) {
 	}
 }
 
+func TestCleanRemovesNamedResult(t *testing.T) {
+	cleanCommand := newCLI().Commands[2]
+	if cleanCommand.Name != "clean" {
+		t.Fatalf("command name = %q, want clean", cleanCommand.Name)
+	}
+
+	path := t.TempDir() + "/result.md"
+	markdown := "db=dev|name=items\n```sql\nSELECT 1\n```\n\nresult:\n---\n| old |\n|-----|\n---\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\nresult:\n---\n| old |\n|-----|\n---\n"
+	if err := os.WriteFile(path, []byte(markdown), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := newCLI().Run(context.Background(), []string{"dbmarkdown", "clean", "items", path}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "db=dev|name=items\n```sql\nSELECT 1\n```\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\nresult:\n---\n| old |\n|-----|\n---\n"
+	if string(got) != want {
+		t.Fatalf("cleaned markdown = %q, want %q", got, want)
+	}
+}
+
+func TestCleanAllRemovesEveryResult(t *testing.T) {
+	cleanAllCommand := newCLI().Commands[3]
+	if cleanAllCommand.Name != "cleanall" {
+		t.Fatalf("command name = %q, want cleanall", cleanAllCommand.Name)
+	}
+
+	path := t.TempDir() + "/result.md"
+	markdown := "db=dev|name=items\n```sql\nSELECT 1\n```\n\nresult:\n---\n| old |\n|-----|\n---\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\nresult:\n---\n| old |\n|-----|\n---\n\nafter\n"
+	if err := os.WriteFile(path, []byte(markdown), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := newCLI().Run(context.Background(), []string{"dbmarkdown", "cleanall", path}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "db=dev|name=items\n```sql\nSELECT 1\n```\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\nafter\n"
+	if string(got) != want {
+		t.Fatalf("cleaned markdown = %q, want %q", got, want)
+	}
+}
+
 func TestExecRunsConfiguredQueryAndWritesToShell(t *testing.T) {
 	configPath := t.TempDir() + "/db.json"
 	if err := os.WriteFile(configPath, []byte(`{"blog":"sqlite://:memory:"}`), 0644); err != nil {

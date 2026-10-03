@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/BimaAdi/dbmarkdown/db"
@@ -135,6 +136,80 @@ func lineEnding(line string) int {
 		return 1
 	}
 	return 0
+}
+
+// trailingNewline returns the length of the newline that starts at offset.
+func trailingNewline(markdown string, offset int) int {
+	if strings.HasPrefix(markdown[offset:], "\r\n") {
+		return 2
+	}
+	if strings.HasPrefix(markdown[offset:], "\n") || strings.HasPrefix(markdown[offset:], "\r") {
+		return 1
+	}
+	return 0
+}
+
+// cleanBlockBounds widens the result bounds by the whitespace separating the
+// query block and the result, so cleaning leaves a single separator. end is
+// widened by the newline that follows the result.
+func cleanBlockBounds(markdown string, blockEnd, start, end int) (int, int) {
+	if start > blockEnd && strings.TrimSpace(markdown[blockEnd:start]) == "" {
+		start = blockEnd
+	}
+	return start, end + trailingNewline(markdown, end)
+}
+
+// CleanResult removes the result section that follows a named query block.
+// path is the file to update and markdown is its current content.
+// block identifies the query whose result is removed.
+func CleanResult(path, markdown string, block QueryBlock) error {
+	start, end, ok := findResultBlock(markdown, block.end)
+	if !ok {
+		return fmt.Errorf("query %q has no result section", block.name)
+	}
+	start, end = cleanBlockBounds(markdown, block.end, start, end)
+	if err := os.WriteFile(path, []byte(markdown[:start]+markdown[end:]), 0644); err != nil {
+		return fmt.Errorf("write markdown: %w", err)
+	}
+	return nil
+}
+
+// CleanAllResults removes every result section from the markdown file.
+// path is the file to update and markdown is its current content.
+func CleanAllResults(path, markdown string) error {
+	lines := strings.SplitAfter(markdown, "\n")
+	offsets := make([]int, len(lines))
+	for i := 1; i < len(lines); i++ {
+		offsets[i] = offsets[i-1] + len(lines[i-1])
+	}
+
+	// Walk in reverse so removing a result keeps the offsets of the earlier
+	// query blocks valid.
+	updated := markdown
+	for i, line := range slices.Backward(lines) {
+		trimmed := strings.TrimSuffix(strings.TrimSuffix(line, "\n"), "\r")
+		if markerPattern.FindStringSubmatch(trimmed) == nil {
+			continue
+		}
+		blockEnd := -1
+		for j := i + 1; j < len(lines); j++ {
+			if strings.TrimSuffix(strings.TrimSuffix(lines[j], "\n"), "\r") == "```" {
+				blockEnd = offsets[j] + len(lines[j])
+				break
+			}
+		}
+		if blockEnd == -1 {
+			continue
+		}
+		if start, end, ok := findResultBlock(updated, blockEnd); ok {
+			start, end = cleanBlockBounds(updated, blockEnd, start, end)
+			updated = updated[:start] + updated[end:]
+		}
+	}
+	if err := os.WriteFile(path, []byte(updated), 0644); err != nil {
+		return fmt.Errorf("write markdown: %w", err)
+	}
+	return nil
 }
 
 func WriteToShell(writer io.Writer, result string) error {

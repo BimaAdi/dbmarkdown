@@ -73,6 +73,47 @@ Use a different configuration file with the global `--conf` option:
 dbmd --conf config/db.json run getalltodo examples/todos.md
 ```
 
+## Clean Results
+Remove the result section of a named query from a Markdown file. 
+
+```sh
+dbmd clean getalltodo todos.md
+```
+command above will change todos.md from this
+```markdown
+# filename todo.md
+## Todo items
+
+db=db-sqlite|name=getalltodo
+\```sql
+SELECT id, name, is_done FROM todo;
+\```
+
+result:
+---
+| id | name       | is_done |
+|----|------------|---------|
+| 1  | first todo | 1       |
+---
+```
+to this
+```markdown
+# filename todo.md
+## Todo items
+
+db=db-sqlite|name=getalltodo
+\```sql
+SELECT id, name, is_done FROM todo;
+\```
+```
+
+If you want to remove every result section from a Markdown file at once
+
+```sh
+dbmd cleanall todos.md
+```
+
+
 ## Execute Query Directly
 Execute a SQL query directly (no markdown needed). The first argument is the configuration name, followed by the query. Results are printed to the shell:
 

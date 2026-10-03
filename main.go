@@ -135,6 +135,51 @@ func newCLI() *cli.Command {
 				},
 			},
 			{
+				Name:      "clean",
+				Usage:     "remove the result section of a named query from markdown file",
+				ArgsUsage: "<name> <markdown path>",
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					if cmd.NArg() != 2 {
+						return errors.New("usage: dbmd clean <name> <markdown path>")
+					}
+
+					name, markdownPath := cmd.Args().Get(0), cmd.Args().Get(1)
+					input, err := os.ReadFile(markdownPath)
+					if err != nil {
+						return fmt.Errorf("read markdown: %w", err)
+					}
+
+					if core.FindDuplicateName(string(input), name) {
+						return fmt.Errorf("duplicate name %q", name)
+					}
+
+					block, err := core.FindQuery(string(input), name)
+					if err != nil {
+						return err
+					}
+
+					return core.CleanResult(markdownPath, string(input), block)
+				},
+			},
+			{
+				Name:      "cleanall",
+				Usage:     "remove all result sections from markdown file",
+				ArgsUsage: "<markdown path>",
+				Action: func(_ context.Context, cmd *cli.Command) error {
+					if cmd.NArg() != 1 {
+						return errors.New("usage: dbmd cleanall <markdown path>")
+					}
+
+					markdownPath := cmd.Args().Get(0)
+					input, err := os.ReadFile(markdownPath)
+					if err != nil {
+						return fmt.Errorf("read markdown: %w", err)
+					}
+
+					return core.CleanAllResults(markdownPath, string(input))
+				},
+			},
+			{
 				Name:  "tutorial",
 				Usage: "show the usage tutorial",
 				Action: func(_ context.Context, cmd *cli.Command) error {

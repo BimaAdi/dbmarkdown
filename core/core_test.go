@@ -116,3 +116,51 @@ func TestWriteToFileReplacesLegacyResult(t *testing.T) {
 		t.Fatalf("updated markdown = %q, want %q", got, want)
 	}
 }
+
+func TestCleanResultRemovesResultSection(t *testing.T) {
+	path := t.TempDir() + "/result.md"
+	markdown := "db=dev|name=items\n```sql\nSELECT 1\n```\n\nresult:\n---\n| old |\n|-----|\n---\n\ndb=dev|name=other\n"
+	block, err := FindQuery(markdown, "items")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CleanResult(path, markdown, block); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "db=dev|name=items\n```sql\nSELECT 1\n```\n\ndb=dev|name=other\n"
+	if string(got) != want {
+		t.Fatalf("cleaned markdown = %q, want %q", got, want)
+	}
+}
+
+func TestCleanResultErrorsWhenNoResult(t *testing.T) {
+	path := t.TempDir() + "/result.md"
+	markdown := "db=dev|name=items\n```sql\nSELECT 1\n```\n"
+	block, err := FindQuery(markdown, "items")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := CleanResult(path, markdown, block); err == nil {
+		t.Fatal("CleanResult succeeded without a result section")
+	}
+}
+
+func TestCleanAllResultsRemovesEveryResult(t *testing.T) {
+	path := t.TempDir() + "/result.md"
+	markdown := "intro\n\ndb=dev|name=items\n```sql\nSELECT 1\n```\n\nresult:\n---\n| old |\n|-----|\n---\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\nresult:\n---\n| old |\n|-----|\n---\n\ndb=dev|name=noresult\n```sql\nSELECT 3\n```\n"
+	if err := CleanAllResults(path, markdown); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "intro\n\ndb=dev|name=items\n```sql\nSELECT 1\n```\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\ndb=dev|name=noresult\n```sql\nSELECT 3\n```\n"
+	if string(got) != want {
+		t.Fatalf("cleaned markdown = %q, want %q", got, want)
+	}
+}
