@@ -33,8 +33,7 @@ func newCLI() *cli.Command {
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "conf",
-				Usage: "path to the database configuration file",
-				Value: "db.json",
+				Usage: "path to the database configuration file (default: conf section in the markdown file, or db.json)",
 			},
 		},
 		Commands: []*cli.Command{
@@ -76,14 +75,14 @@ func newCLI() *cli.Command {
 						outputPath = markdownPath
 					}
 
-					cfg, err := core.LoadConfig(cmd.String("conf"))
-					if err != nil {
-						return err
-					}
-
 					input, err := os.ReadFile(markdownPath)
 					if err != nil {
 						return fmt.Errorf("read markdown: %w", err)
+					}
+
+					cfg, err := core.LoadConfig(cmd.String("conf"), string(input))
+					if err != nil {
+						return err
 					}
 
 					if core.FindDuplicateName(string(input), name) {
@@ -117,7 +116,7 @@ func newCLI() *cli.Command {
 					}
 
 					configName, query := cmd.Args().Get(0), cmd.Args().Get(1)
-					cfg, err := core.LoadConfig(cmd.String("conf"))
+					cfg, err := core.LoadConfig(cmd.String("conf"), "")
 					if err != nil {
 						return err
 					}

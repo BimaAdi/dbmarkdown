@@ -1,7 +1,6 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -12,8 +11,6 @@ import (
 
 	"github.com/BimaAdi/dbmarkdown/db"
 )
-
-type Config map[string]string
 
 type QueryBlock struct {
 	connection string
@@ -29,18 +26,6 @@ func (b QueryBlock) Query() string { return b.query }
 
 var markerPattern = regexp.MustCompile(`^\s*db=([^|\s]+)\|name=([^\s]+)\s*$`)
 var resultPattern = regexp.MustCompile(`(?m)^[ \t]*result:[ \t]*(?:\r?\n|$)`)
-
-func LoadConfig(path string) (Config, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read config: %w", err)
-	}
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parse config: %w", err)
-	}
-	return cfg, nil
-}
 
 func RunQuery(query string, cfg Config) (string, error) {
 	if len(cfg) != 1 {

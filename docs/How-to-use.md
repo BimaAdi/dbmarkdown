@@ -73,6 +73,23 @@ Use a different configuration file with the global `--conf` option:
 dbmd --conf config/db.json run getalltodo examples/todos.md
 ```
 
+### Configuration Priority
+The configuration is resolved in this order, highest first:
+
+1. `--conf` when you pass it. If the file does not exist, dbmarkdown fails with `config <path> not found`.
+2. A `conf:` section inside the Markdown file: a `conf:` line followed by a ` ```json ` code fence holding the configuration (NOTE: don't include \ on markdown. it added to escape the triple backtick):
+
+```markdown
+conf:
+\```json
+{
+	"db-sqlite": "sqlite://todo.db"
+}
+\```
+```
+
+3. The default `db.json` file in the current directory.
+
 ## Clean Results
 Remove the result section of a named query from a Markdown file. 
 

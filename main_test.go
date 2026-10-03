@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/urfave/cli/v3"
@@ -123,6 +125,36 @@ func TestCleanAllRemovesEveryResult(t *testing.T) {
 	want := "db=dev|name=items\n```sql\nSELECT 1\n```\n\ndb=dev|name=other\n```sql\nSELECT 2\n```\n\nafter\n"
 	if string(got) != want {
 		t.Fatalf("cleaned markdown = %q, want %q", got, want)
+	}
+}
+
+func TestRunReadsConfigFromMarkdownConfSection(t *testing.T) {
+	dir := t.TempDir()
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chdir(wd)
+
+	markdownPath := filepath.Join(dir, "todos.md")
+	markdown := "conf:\n```json\n{\"db-sqlite\":\"sqlite://:memory:\"}\n```\n\ndb=db-sqlite|name=getall\n```sql\nSELECT 1 AS id\n```\n"
+	if err := os.WriteFile(markdownPath, []byte(markdown), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := newCLI().Run(context.Background(), []string{"dbmarkdown", "run", "getall", markdownPath}); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(markdownPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(got), "result:\n---\n| id |\n|----|\n| 1  |\n---\n") {
+		t.Fatalf("run result not written to markdown: %q", got)
 	}
 }
 
