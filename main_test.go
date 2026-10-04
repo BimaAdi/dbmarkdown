@@ -140,7 +140,7 @@ func TestRunReadsConfigFromMarkdownConfSection(t *testing.T) {
 	defer os.Chdir(wd)
 
 	markdownPath := filepath.Join(dir, "todos.md")
-	markdown := "conf:\n```json\n{\"db-sqlite\":\"sqlite://:memory:\"}\n```\n\ndb=db-sqlite|name=getall\n```sql\nSELECT 1 AS id\n```\n"
+	markdown := "conf:\n```json\n{\"db-sqlite\":\"mock://\"}\n```\n\ndb=db-sqlite|name=getall\n```sql\nSELECT 1 AS id\n```\n"
 	if err := os.WriteFile(markdownPath, []byte(markdown), 0644); err != nil {
 		t.Fatal(err)
 	}
@@ -153,14 +153,14 @@ func TestRunReadsConfigFromMarkdownConfSection(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(got), "result:\n---\n| id |\n|----|\n| 1  |\n---\n") {
+	if !strings.Contains(string(got), "result:\n---\n| id | name       | is_done |\n|----|------------|---------|\n| 1  | first todo | 1       |\n---\n") {
 		t.Fatalf("run result not written to markdown: %q", got)
 	}
 }
 
 func TestExecRunsConfiguredQueryAndWritesToShell(t *testing.T) {
 	configPath := t.TempDir() + "/db.json"
-	if err := os.WriteFile(configPath, []byte(`{"blog":"sqlite://:memory:"}`), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(`{"blog":"mock://"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -174,7 +174,7 @@ func TestExecRunsConfiguredQueryAndWritesToShell(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := "| id |\n|----|\n| 1  |\n"
+	want := "| id | name       | is_done |\n|----|------------|---------|\n| 1  | first todo | 1       |\n"
 	if output.String() != want {
 		t.Fatalf("exec output = %q, want %q", output.String(), want)
 	}
@@ -182,7 +182,7 @@ func TestExecRunsConfiguredQueryAndWritesToShell(t *testing.T) {
 
 func TestExecRejectsUnknownConfig(t *testing.T) {
 	configPath := t.TempDir() + "/db.json"
-	if err := os.WriteFile(configPath, []byte(`{"blog":"sqlite://:memory:"}`), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(`{"blog":"mock://"}`), 0644); err != nil {
 		t.Fatal(err)
 	}
 
