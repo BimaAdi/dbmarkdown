@@ -1,3 +1,5 @@
+//go:build redis
+
 package db
 
 import (
@@ -9,12 +11,16 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// IsRedisDSN reports whether dsn uses a Redis connection scheme.
-func IsRedisDSN(dsn string) bool {
+type redisDB struct{}
+
+var _ DBInterface = redisDB{}
+
+// IsMyDSN reports whether dsn uses a Redis connection scheme.
+func (redisDB) IsMyDSN(dsn string) bool {
 	return strings.HasPrefix(dsn, "redis://") || strings.HasPrefix(dsn, "rediss://")
 }
 
-func queryRedis(dsn, query string) (string, error) {
+func (redisDB) Query(dsn, query string) (string, error) {
 	options, err := redis.ParseURL(dsn)
 	if err != nil {
 		return "", fmt.Errorf("open database: %w", err)
@@ -39,6 +45,11 @@ func queryRedis(dsn, query string) (string, error) {
 	return format.Text(redisTextValues(result)), nil
 }
 
+// IsRedisDSN reports whether dsn uses a Redis connection scheme.
+func IsRedisDSN(dsn string) bool {
+	return (redisDB{}).IsMyDSN(dsn)
+}
+
 func redisTextValues(value any) []string {
 	switch value := value.(type) {
 	case nil:
@@ -58,4 +69,8 @@ func redisTextValues(value any) []string {
 	default:
 		return []string{fmt.Sprint(value)}
 	}
+}
+
+func init() {
+	RegisterDatabase(redisDB{})
 }

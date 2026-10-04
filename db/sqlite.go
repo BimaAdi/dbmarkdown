@@ -1,3 +1,5 @@
+//go:build sqlite
+
 package db
 
 import (
@@ -9,11 +11,16 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func isSQLiteDSN(dsn string) bool {
+type sqliteDB struct{}
+
+var _ DBInterface = sqliteDB{}
+
+func (sqliteDB) IsMyDSN(dsn string) bool {
 	return strings.HasPrefix(dsn, "sqlite://")
 }
 
-func querySQLite(path, query string) (string, error) {
+func (sqliteDB) Query(dsn, query string) (string, error) {
+	path := strings.TrimPrefix(dsn, "sqlite://")
 	if strings.TrimSpace(path) == "" {
 		return "", fmt.Errorf("open database: SQLite path is empty")
 	}
@@ -38,6 +45,10 @@ func querySQLite(path, query string) (string, error) {
 	return markdownTableSQLite(rows, columns)
 }
 
+func isSQLiteDSN(dsn string) bool {
+	return (sqliteDB{}).IsMyDSN(dsn)
+}
+
 func markdownTableSQLite(rows *sql.Rows, columns []string) (string, error) {
 	data := make([][]string, 0)
 	for rows.Next() {
@@ -60,4 +71,8 @@ func markdownTableSQLite(rows *sql.Rows, columns []string) (string, error) {
 		return "", fmt.Errorf("read query result: %w", err)
 	}
 	return format.MarkdownTable(columns, data), nil
+}
+
+func init() {
+	RegisterDatabase(sqliteDB{})
 }

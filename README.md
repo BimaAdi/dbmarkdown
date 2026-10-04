@@ -19,5 +19,5 @@ see [How to Use](./docs/How-to-use.md)
 ## Static Analysis
 - `go fmt ./...`
 - `go vet ./...`
-- `go test ./...`
-- `go build -o dbmd`
+- `go test ./... -tags="postgres sqlite mysql redis"`
+- `go build -o dbmd -tags="postgres sqlite mysql redis"`

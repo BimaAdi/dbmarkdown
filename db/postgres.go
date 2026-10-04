@@ -1,3 +1,5 @@
+//go:build postgres
+
 package db
 
 import (
@@ -9,11 +11,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func isPostgresDsn(dsn string) bool {
+type postgresDB struct{}
+
+var _ DBInterface = postgresDB{}
+
+func (postgresDB) IsMyDSN(dsn string) bool {
 	return strings.HasPrefix(dsn, "postgres://") || strings.HasPrefix(dsn, "postgresql://")
 }
 
-func queryPostgres(dsn, query string) (string, error) {
+func (postgresDB) Query(dsn, query string) (string, error) {
 	database, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return "", fmt.Errorf("open database: %w", err)
@@ -32,6 +38,10 @@ func queryPostgres(dsn, query string) (string, error) {
 	}
 
 	return markdownTablePostgres(rows, columns)
+}
+
+func isPostgresDsn(dsn string) bool {
+	return (postgresDB{}).IsMyDSN(dsn)
 }
 
 func markdownTablePostgres(rows *sql.Rows, columns []string) (string, error) {
@@ -56,4 +66,8 @@ func markdownTablePostgres(rows *sql.Rows, columns []string) (string, error) {
 		return "", fmt.Errorf("read query result: %w", err)
 	}
 	return format.MarkdownTable(columns, data), nil
+}
+
+func init() {
+	RegisterDatabase(postgresDB{})
 }

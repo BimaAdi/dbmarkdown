@@ -1,7 +1,27 @@
+//go:build sqlite
+
 package db
 
 import "testing"
 
+func TestIsSQLiteDSN(t *testing.T) {
+	tests := []struct {
+		dsn  string
+		want bool
+	}{
+		{dsn: "sqlite://:memory:", want: true},
+		{dsn: "sqlite://database.db", want: true},
+		{dsn: "postgres://database", want: false},
+		{dsn: "SQLite://database.db", want: false},
+		{dsn: "", want: false},
+	}
+
+	for _, test := range tests {
+		if got := isSQLiteDSN(test.dsn); got != test.want {
+			t.Errorf("isSQLiteDSN(%q) = %t, want %t", test.dsn, got, test.want)
+		}
+	}
+}
 func TestQuerySQLite(t *testing.T) {
 	got, err := Query("sqlite://:memory:", "SELECT 1 AS id, 'todo' AS name, true AS is_done")
 	if err != nil {

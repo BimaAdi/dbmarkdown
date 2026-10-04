@@ -1,23 +1,24 @@
 package db
 
-import (
-	"fmt"
-	"strings"
-)
+import "fmt"
+
+type DBInterface interface {
+	IsMyDSN(dsn string) bool
+	Query(dsn, query string) (string, error)
+}
+
+var databases = []DBInterface{}
+
+func RegisterDatabase(dbi DBInterface) {
+	databases = append(databases, dbi)
+}
 
 // Query executes a database query and formats its result as Markdown.
 func Query(dsn, query string) (string, error) {
-	if IsRedisDSN(dsn) {
-		return queryRedis(dsn, query)
-	}
-	if isSQLiteDSN(dsn) {
-		return querySQLite(strings.TrimPrefix(dsn, "sqlite://"), query)
-	}
-	if isPostgresDsn(dsn) {
-		return queryPostgres(dsn, query)
-	}
-	if isMySQLDSN(dsn) {
-		return queryMySQL(dsn, query)
+	for _, database := range databases {
+		if database.IsMyDSN(dsn) {
+			return database.Query(dsn, query)
+		}
 	}
 	return "", fmt.Errorf("unsupported database DSN: %q", dsn)
 }

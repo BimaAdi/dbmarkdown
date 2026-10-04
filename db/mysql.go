@@ -1,3 +1,5 @@
+//go:build mysql
+
 package db
 
 import (
@@ -10,11 +12,15 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-func isMySQLDSN(dsn string) bool {
+type mysqlDB struct{}
+
+var _ DBInterface = mysqlDB{}
+
+func (mysqlDB) IsMyDSN(dsn string) bool {
 	return strings.HasPrefix(dsn, "mysql://")
 }
 
-func queryMySQL(dsn, query string) (string, error) {
+func (mysqlDB) Query(dsn, query string) (string, error) {
 	nativeDSN, err := mysqlNativeDSN(dsn)
 	if err != nil {
 		return "", fmt.Errorf("open database: %w", err)
@@ -38,6 +44,10 @@ func queryMySQL(dsn, query string) (string, error) {
 	}
 
 	return markdownTableMySQL(rows, columns)
+}
+
+func isMySQLDSN(dsn string) bool {
+	return (mysqlDB{}).IsMyDSN(dsn)
 }
 
 func markdownTableMySQL(rows *sql.Rows, columns []string) (string, error) {
@@ -98,4 +108,8 @@ func queryParams(values url.Values) (map[string]string, error) {
 		params[key] = value[0]
 	}
 	return params, nil
+}
+
+func init() {
+	RegisterDatabase(mysqlDB{})
 }

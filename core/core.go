@@ -246,7 +246,11 @@ func FindQuery(markdown, name string, configs ...Config) (QueryBlock, error) {
 		}
 
 		fence := "sql"
-		if len(configs) == 1 && db.IsRedisDSN(configs[0][match[1]]) {
+		dsn := ""
+		if len(configs) == 1 {
+			dsn = configs[0][match[1]]
+		}
+		if strings.HasPrefix(dsn, "redis://") || strings.HasPrefix(dsn, "rediss://") {
 			fence = "redis"
 		} else if len(configs) == 0 && i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "```redis" {
 			fence = "redis"
